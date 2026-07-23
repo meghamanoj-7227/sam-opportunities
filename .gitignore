@@ -1,0 +1,4 @@
+# Keep secrets out of the repo — the API key lives in a GitHub Actions secret
+.env
+__pycache__/
+*.pyc

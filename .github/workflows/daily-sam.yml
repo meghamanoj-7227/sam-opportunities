@@ -1,0 +1,46 @@
+name: Daily SAM.gov Opportunities
+
+on:
+  schedule:
+    # Runs every day at 12:00 UTC. Adjust the cron as needed.
+    - cron: "0 12 * * *"
+  workflow_dispatch:   # allows manual runs from the Actions tab
+
+permissions:
+  contents: write      # needed to commit the updated spreadsheet back
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run SAM opportunities script
+        env:
+          # API key comes from a GitHub secret, NOT from the committed .env
+          SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+          # Leave dates unset so the script uses today's date via datetime
+          KEYWORD: Gelsight
+          OUTPUT_FILE: GELSIGHT_OPPORTUNITIES.xlsx
+        run: python sam_opportunities.py
+
+      - name: Commit updated spreadsheet
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add GELSIGHT_OPPORTUNITIES.xlsx
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Update opportunities $(date -u +'%Y-%m-%d')"
+            git push
+          fi
