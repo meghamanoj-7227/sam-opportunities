@@ -14,15 +14,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Check that secrets are set (values not printed)
+        env:
+          SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: |
+          check() { if [ -z "$2" ]; then echo "$1: MISSING"; else echo "$1: set (length ${#2})"; fi; }
+          check SAM_API_KEY "$SAM_API_KEY"
+          check SMTP_USER "$SMTP_USER"
+          check SMTP_PASSWORD "$SMTP_PASSWORD"
 
       - name: Run SAM opportunities script
         env:
@@ -31,6 +42,13 @@ jobs:
           # Leave dates unset so the script uses today's date via datetime
           KEYWORD: Gelsight
           OUTPUT_FILE: GELSIGHT_OPPORTUNITIES.xlsx
+          # Email settings — all from GitHub secrets
+          SMTP_HOST: smtp.office365.com
+          SMTP_PORT: "587"
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.SMTP_USER }}
+          EMAIL_TO: megha.manoj@gelsight.com
         run: python sam_opportunities.py
 
       - name: Commit updated spreadsheet
